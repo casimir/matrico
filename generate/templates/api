@@ -1,0 +1,28 @@
+// This file is generated and not meant to be edited by hand."
+
+package {{ .Package }}
+
+import (
+	"net/http"
+
+	"github.com/casimir/matrico/api/common"
+	"github.com/go-chi/chi"
+)
+
+func Register(r chi.Router) {
+	{{ range .Handlers }}
+	{{- if not .Auth }}{{ .RouteSource "r" }}
+	{{ end -}}
+	{{- end -}}
+	r.Route("/", func(r chi.Router) {
+		r.Use(common.AuthorizationMiddleware)
+		{{ range .Handlers }}
+		{{- if .Auth }}{{ .RouteSource "r" }}
+		{{ end -}}
+		{{- end -}}
+	})
+}
+
+{{ range .Handlers }}
+{{ template "handler" . }}
+{{ end }}

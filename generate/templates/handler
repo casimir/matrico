@@ -1,0 +1,21 @@
+{{ if .Body }}
+{{ template "schema" .Body }}
+
+{{ end -}}
+{{ template "schema" .Response }}
+
+{{ .Doc }}
+func {{ .Func }}(w http.ResponseWriter, r *http.Request) {
+	{{- range .Params }}
+	{{ . }} := chi.URLParam(r, "{{ . }}")
+	{{- end }}
+	{{ if .Body -}}
+	var body {{ .Body.Identifier }}
+	if err := common.UnmarshalBody(r, &body); err != nil {
+		common.ResponseHandler(w, nil, err)
+		return
+	};
+	{{- end -}}
+	data, err := {{ .ImplFunc }}({{ .ImplFuncArgs }})
+	common.ResponseHandler(w, data, err)
+}

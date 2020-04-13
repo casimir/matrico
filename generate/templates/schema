@@ -1,0 +1,14 @@
+{{ range .Nested }}
+{{ template "schema" . }}
+
+{{ end -}}
+{{ if len .Attributes }}
+type {{ .Identifier }} struct {
+	{{ range .Attributes -}}
+	{{ .Doc }}
+	{{ .ID }} {{ .Type }}{{ if .Tag }} `{{ .Tag }}`{{ end }}
+	{{ end }}
+}
+{{ else }}
+type {{ .Identifier }} map[string]interface{}
+{{ end }}
