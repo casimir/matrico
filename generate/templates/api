@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func Register(r chi.Router) {
+func RegisterAPI(r chi.Router) {
 	{{ range .Handlers }}
 	{{- if not .Auth }}{{ .RouteSource "r" }}
 	{{ end -}}

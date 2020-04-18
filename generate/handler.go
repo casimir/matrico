@@ -20,7 +20,7 @@ type APIHandler struct {
 }
 
 func (h *APIHandler) ImplFuncArgs() string {
-	var all []string
+	all := []string{"r.Context()"}
 	all = append(all, h.Params...)
 	if h.Body != nil {
 		all = append(all, "body")

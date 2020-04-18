@@ -17,3 +17,7 @@ var (
 	ErrUnknown      = Error{"M_UNKNOWN", "An unknown error has occurred.", 400}
 	ErrUnknownToken = Error{"M_UNKNOWN_TOKEN", "The access token specified was not recognised.", 403}
 )
+
+func New(msg string) Error {
+	return Error{"M_UNKNOWN", msg, 400}
+}

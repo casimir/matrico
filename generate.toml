@@ -80,7 +80,6 @@ blacklist = [
     "queryUserByProtocol",
     "redactEvent",
     "redirectToSSO",
-    "register",
     "reportContent",
     "requestOpenIdToken",
     "requestTokenTo3PIDEmail",

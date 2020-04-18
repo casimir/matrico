@@ -9,9 +9,10 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func Register(r chi.Router) {
+func RegisterAPI(r chi.Router) {
 	r.Get("/_matrix/client/r0/login", GetLoginFlows)
 	r.Post("/_matrix/client/r0/login", Login)
+	r.Post("/_matrix/client/r0/register", Register)
 	r.Get("/_matrix/client/versions", GetVersions)
 	r.Route("/", func(r chi.Router) {
 		r.Use(common.AuthorizationMiddleware)
@@ -42,7 +43,7 @@ func DefineFilter(w http.ResponseWriter, r *http.Request) {
 		common.ResponseHandler(w, nil, err)
 		return
 	}
-	data, err := defineFilter(userId, body)
+	data, err := defineFilter(r.Context(), userId, body)
 	common.ResponseHandler(w, data, err)
 }
 
@@ -60,7 +61,7 @@ type GetLoginFlowsResponse struct {
 // Gets the homeserver's supported login types to authenticate users. Clients
 // should pick one of these and supply it as the ``type`` when logging in.
 func GetLoginFlows(w http.ResponseWriter, r *http.Request) {
-	data, err := getLoginFlows()
+	data, err := getLoginFlows(r.Context())
 	common.ResponseHandler(w, data, err)
 }
 
@@ -128,7 +129,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		common.ResponseHandler(w, nil, err)
 		return
 	}
-	data, err := login(body)
+	data, err := login(r.Context(), body)
 	common.ResponseHandler(w, data, err)
 }
 
@@ -138,7 +139,7 @@ type LogoutResponse map[string]interface{}
 // authorization. The device associated with the access token is also deleted.
 // `Device keys <#device-keys>`_ for the device are deleted alongside the device.
 func Logout(w http.ResponseWriter, r *http.Request) {
-	data, err := logout()
+	data, err := logout(r.Context())
 	common.ResponseHandler(w, data, err)
 }
 
@@ -154,7 +155,104 @@ type GetPushRulesResponse struct {
 // ``/pushrules/global/``. This will return a subset of this data under the
 // specified key e.g. the ``global`` key.
 func GetPushRules(w http.ResponseWriter, r *http.Request) {
-	data, err := getPushRules()
+	data, err := getPushRules(r.Context())
+	common.ResponseHandler(w, data, err)
+}
+
+type RegisterBody struct {
+	// Additional authentication information for the
+	// user-interactive authentication API. Note that this
+	// information is *not* used to define how the registered user
+	// should be authenticated, but is instead used to
+	// authenticate the ``register`` call itself.
+	Auth map[string]interface{} `json:"auth,omitempty"`
+	// ID of the client device. If this does not correspond to a
+	// known client device, a new device will be created. The server
+	// will auto-generate a device_id if this is not specified.
+	DeviceID string `json:"device_id,omitempty"`
+	// If true, an ``access_token`` and ``device_id`` should not be
+	// returned from this call, therefore preventing an automatic
+	// login. Defaults to false.
+	InhibitLogin bool `json:"inhibit_login,omitempty"`
+	// A display name to assign to the newly-created device. Ignored
+	// if ``device_id`` corresponds to a known device.
+	InitialDeviceDisplayName string `json:"initial_device_display_name,omitempty"`
+	// The desired password for the account.
+	Password string `json:"password,omitempty"`
+	// The basis for the localpart of the desired Matrix ID. If omitted,
+	// the homeserver MUST generate a Matrix ID local part.
+	Username string `json:"username,omitempty"`
+}
+
+type RegisterResponse struct {
+	// An access token for the account.
+	// This access token can then be used to authorize other requests.
+	// Required if the ``inhibit_login`` option is false.
+	AccessToken string `json:"access_token,omitempty"`
+	// ID of the registered device. Will be the same as the
+	// corresponding parameter in the request, if one was specified.
+	// Required if the ``inhibit_login`` option is false.
+	DeviceID string `json:"device_id,omitempty"`
+	// The server_name of the homeserver on which the account has
+	// been registered.
+	//
+	// **Deprecated**. Clients should extract the server_name from
+	// ``user_id`` (by splitting at the first colon) if they require
+	// it. Note also that ``homeserver`` is not spelt this way.
+	HomeServer string `json:"home_server,omitempty"`
+	// The fully-qualified Matrix user ID (MXID) that has been registered.
+	//
+	// Any user ID returned by this API must conform to the grammar given in the
+	// `Matrix specification <../appendices.html#user-identifiers>`_.
+	UserID string `json:"user_id"`
+}
+
+// This API endpoint uses the `User-Interactive Authentication API`_, except in
+// the cases where a guest account is being registered.
+//
+// Register for an account on this homeserver.
+//
+// There are two kinds of user account:
+//
+// - `user` accounts. These accounts may use the full API described in this specification.
+//
+// - `guest` accounts. These accounts may have limited permissions and may not be supported by all servers.
+//
+// If registration is successful, this endpoint will issue an access token
+// the client can use to authorize itself in subsequent requests.
+//
+// If the client does not supply a ``device_id``, the server must
+// auto-generate one.
+//
+// The server SHOULD register an account with a User ID based on the
+// ``username`` provided, if any. Note that the grammar of Matrix User ID
+// localparts is restricted, so the server MUST either map the provided
+// ``username`` onto a ``user_id`` in a logical manner, or reject
+// ``username``\s which do not comply to the grammar, with
+// ``M_INVALID_USERNAME``.
+//
+// Matrix clients MUST NOT assume that localpart of the registered
+// ``user_id`` matches the provided ``username``.
+//
+// The returned access token must be associated with the ``device_id``
+// supplied by the client or generated by the server. The server may
+// invalidate any access token previously associated with that device. See
+// `Relationship between access tokens and devices`_.
+//
+// When registering a guest account, all parameters in the request body
+// with the exception of ``initial_device_display_name`` MUST BE ignored
+// by the server. The server MUST pick a ``device_id`` for the account
+// regardless of input.
+//
+// Any user ID returned by this API must conform to the grammar given in the
+// `Matrix specification <../appendices.html#user-identifiers>`_.
+func Register(w http.ResponseWriter, r *http.Request) {
+	var body RegisterBody
+	if err := common.UnmarshalBody(r, &body); err != nil {
+		common.ResponseHandler(w, nil, err)
+		return
+	}
+	data, err := register(r.Context(), body, r.URL.Query())
 	common.ResponseHandler(w, data, err)
 }
 
@@ -218,7 +316,7 @@ type SyncResponse struct {
 // as to whether or not they are redundant.  This ensures that joins/leaves
 // and profile changes which occur during the gap are not lost.
 func Sync(w http.ResponseWriter, r *http.Request) {
-	data, err := sync(r.URL.Query())
+	data, err := sync(r.Context(), r.URL.Query())
 	common.ResponseHandler(w, data, err)
 }
 
@@ -251,6 +349,6 @@ type GetVersionsResponse struct {
 // upgrade appropriately. Additionally, clients should avoid using unstable
 // features in their stable releases.
 func GetVersions(w http.ResponseWriter, r *http.Request) {
-	data, err := getVersions()
+	data, err := getVersions(r.Context())
 	common.ResponseHandler(w, data, err)
 }

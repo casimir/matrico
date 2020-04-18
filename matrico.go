@@ -19,7 +19,7 @@ func NewServer() Server {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	api.Register(r)
+	api.InitAndRegister(r)
 
 	return Server{r}
 }
