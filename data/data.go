@@ -98,7 +98,6 @@ func (d *DataGraph) NodeCreate(n Noder) error {
 
 func (d *DataGraph) NodeExists(n Noder) (bool, error) {
 	q := fmt.Sprintf(`MATCH %s RETURN n`, nodeSource(n, "n", false))
-	fmt.Println(q)
 	return d.Exists(q)
 }
 
