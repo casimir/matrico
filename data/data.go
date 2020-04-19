@@ -108,6 +108,20 @@ func (d *DataGraph) NodeDelete(n Noder) (bool, error) {
 	return !res.Empty(), err
 }
 
+func (d *DataGraph) NodeSet(n Noder, props map[string]interface{}) error {
+	var setProps []string
+	for k, v := range props {
+		setProps = append(setProps, fmt.Sprintf("n.%s=%v", k, rg.ToString(v)))
+	}
+	q := fmt.Sprintf(
+		`MATCH %s SET %s`,
+		nodeSource(n, "n", false), strings.Join(setProps, ","),
+	)
+	res, err := d.Query(q)
+	defer res.Close()
+	return err
+}
+
 func (d *DataGraph) LinkNodes(src, dst Noder, label string) error {
 	q := fmt.Sprintf(
 		`MATCH %s, %s MERGE (n)-[:%s]->(m)`,
