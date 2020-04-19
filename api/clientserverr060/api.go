@@ -4,6 +4,7 @@ package clientserverr060
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/casimir/matrico/api/common"
 	"github.com/go-chi/chi"
@@ -38,7 +39,11 @@ type DefineFilterResponse struct {
 // Returns a filter ID that may be used in future requests to
 // restrict which events are returned to the client.
 func DefineFilter(w http.ResponseWriter, r *http.Request) {
-	userId := chi.URLParam(r, "userId")
+	userId, erruserId := url.QueryUnescape(chi.URLParam(r, "userId"))
+	if erruserId != nil {
+		common.ResponseHandler(w, nil, erruserId)
+		return
+	}
 	var body DefineFilterBody
 	if err := common.UnmarshalBody(r, &body); err != nil {
 		common.ResponseHandler(w, nil, err)

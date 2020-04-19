@@ -7,7 +7,11 @@
 {{ .Doc }}
 func {{ .Func }}(w http.ResponseWriter, r *http.Request) {
 	{{- range .Params }}
-	{{ . }} := chi.URLParam(r, "{{ . }}")
+	{{ . }}, err{{ . }} := url.QueryUnescape(chi.URLParam(r, "{{ . }}"))
+	if err{{ . }} != nil {
+		common.ResponseHandler(w, nil, err{{ . }})
+		return
+	}
 	{{- end }}
 	{{ if .Body -}}
 	var body {{ .Body.Identifier }}
