@@ -209,10 +209,6 @@ func parseSpecFiles(root string) ([]Spec, error) {
 				log.Print("TODO handle later, multiple types")
 				return nil
 			}
-			if strings.HasSuffix(path, "presence.yaml") {
-				log.Print("TODO handle later, multiple types")
-				return nil
-			}
 			raw, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
