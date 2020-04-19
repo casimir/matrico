@@ -20,6 +20,7 @@ func RegisterAPI(r chi.Router) {
 		r.Post("/_matrix/client/r0/logout", Logout)
 		r.Get("/_matrix/client/r0/pushrules/", GetPushRules)
 		r.Get("/_matrix/client/r0/sync", Sync)
+		r.Get("/_matrix/client/r0/account/whoami", GetTokenOwner)
 	})
 }
 
@@ -350,5 +351,23 @@ type GetVersionsResponse struct {
 // features in their stable releases.
 func GetVersions(w http.ResponseWriter, r *http.Request) {
 	data, err := getVersions(r.Context())
+	common.ResponseHandler(w, data, err)
+}
+
+type GetTokenOwnerResponse struct {
+	// The user id that owns the access token.
+	UserID string `json:"user_id"`
+}
+
+// Gets information about the owner of a given access token.
+//
+// Note that, as with the rest of the Client-Server API,
+// Application Services may masquerade as users within their
+// namespace by giving a ``user_id`` query parameter. In this
+// situation, the server should verify that the given ``user_id``
+// is registered by the appservice, and return it in the response
+// body.
+func GetTokenOwner(w http.ResponseWriter, r *http.Request) {
+	data, err := getTokenOwner(r.Context())
 	common.ResponseHandler(w, data, err)
 }

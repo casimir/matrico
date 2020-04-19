@@ -53,7 +53,6 @@ blacklist = [
     "getRoomStateWithKey",
     "getRoomTags",
     "getRoomVisibilityOnDirectory",
-    "getTokenOwner",
     "getTurnServer",
     "getUrlPreview",
     "getUserProfile",

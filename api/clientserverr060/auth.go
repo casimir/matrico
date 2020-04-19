@@ -159,3 +159,8 @@ func logout(ctx context.Context) (LogoutResponse, error) {
 	}
 	return LogoutResponse{}, nil
 }
+
+func getTokenOwner(ctx context.Context) (GetTokenOwnerResponse, error) {
+	user := ctx.Value(common.CtxUserKey).(string)
+	return GetTokenOwnerResponse{user}, nil
+}
