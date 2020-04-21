@@ -46,7 +46,7 @@ func register(ctx context.Context, body RegisterBody, query url.Values) (Registe
 
 	username := makeUsername(*body.Username)
 	if username == "" {
-		log.Printf("invalid username: %s", body.Username)
+		log.Printf("invalid username: %v", body.Username)
 		return RegisterResponse{}, common.New("invalid username")
 	}
 
