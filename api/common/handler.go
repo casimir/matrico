@@ -33,6 +33,15 @@ func ContextMiddleware(d *data.DataGraph) func(next http.Handler) http.Handler {
 	}
 }
 
+func writeError(w http.ResponseWriter, err Error) {
+	payload, em := json.Marshal(err)
+	if em != nil {
+		panic(em)
+	}
+	w.WriteHeader(err.Status)
+	fmt.Fprintln(w, string(payload))
+}
+
 func AuthorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := ""
@@ -49,15 +58,15 @@ func AuthorizationMiddleware(next http.Handler) http.Handler {
 		}
 
 		if token == "" {
-			http.Error(w, ErrMissingToken.Error(), ErrMissingToken.Status)
+			writeError(w, ErrMissingToken)
 		} else {
 			d := Data(r.Context())
 			user, err := data.NewUserFromToken(d, token)
 			if err != nil {
 				log.Print(err)
-				http.Error(w, ErrUnknown.Error(), ErrUnknown.Status)
+				writeError(w, ErrUnknown)
 			} else if user == nil {
-				http.Error(w, ErrUnknownToken.Error(), ErrUnknownToken.Status)
+				writeError(w, ErrUnknownToken)
 			} else {
 				ctx := r.Context()
 				ctx = context.WithValue(ctx, CtxTokenKey, token)
@@ -81,12 +90,7 @@ func ResponseHandler(w http.ResponseWriter, data interface{}, err error) {
 	if err != nil {
 		log.Print(err)
 		if e, ok := err.(Error); ok {
-			payload, em := json.Marshal(err)
-			if em != nil {
-				panic(em)
-			}
-			w.WriteHeader(e.Status)
-			fmt.Fprintln(w, string(payload))
+			writeError(w, e)
 		} else {
 			panic(e)
 		}
