@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -84,7 +85,8 @@ func ResponseHandler(w http.ResponseWriter, data interface{}, err error) {
 			if em != nil {
 				panic(em)
 			}
-			http.Error(w, string(payload), e.Status)
+			w.WriteHeader(e.Status)
+			fmt.Fprintln(w, string(payload))
 		} else {
 			panic(e)
 		}
