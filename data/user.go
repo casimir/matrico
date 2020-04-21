@@ -83,3 +83,10 @@ func (n *User) MarkOnline(d *DataGraph) error {
 	}
 	return d.NodeSet(n, props)
 }
+
+func (n *User) MarkUnavailable(d *DataGraph) error {
+	props := map[string]interface{}{
+		"presence": "unavailable",
+	}
+	return d.NodeSet(n, props)
+}

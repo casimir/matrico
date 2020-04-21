@@ -61,11 +61,10 @@ func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error
 	if v, ok := props["lastActiveAgo"]; ok {
 		ago := data.NowMs() - int64(v.(int))
 		threshold := 5 * time.Minute
-		tooLong := time.Duration(ago)*time.Millisecond > threshold
-		if resp.Presence == "online" && tooLong {
+		idle := time.Duration(ago)*time.Millisecond > threshold
+		if resp.Presence == "online" && idle {
 			resp.Presence = "unavailable"
-			props := map[string]interface{}{"presence": resp.Presence}
-			if err := d.NodeSet(user, props); err != nil {
+			if err := user.MarkUnavailable(d); err != nil {
 				panic(err)
 			}
 		}
