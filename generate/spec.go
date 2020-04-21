@@ -52,14 +52,14 @@ type GoAttr struct {
 	Opt  bool
 }
 
-func NewGoAttribute(name, type_, doc string, opt bool) GoAttr {
+func NewGoAttribute(name, typ, doc string, opt bool) GoAttr {
 	jopts := name
 	if opt {
 		jopts += ",omitempty"
 	}
 	return GoAttr{
 		ID:   toID(name, true),
-		Type: type_,
+		Type: typ,
 		Doc:  toComment(doc),
 		Tag:  `json:"` + jopts + `"`,
 		Opt:  opt,

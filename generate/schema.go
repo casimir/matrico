@@ -3,6 +3,7 @@ package generate
 import (
 	"log"
 	"sort"
+	"strings"
 )
 
 type Type struct {
@@ -64,6 +65,22 @@ func (ap *AdditionalProperties) UnmarshalYAML(unmarshal func(interface{}) error)
 	return nil
 }
 
+func isStruct(typ string) bool {
+	if typ == "interface{}" {
+		return false
+	}
+	if strings.HasPrefix(typ, "map") {
+		return false
+	}
+	if strings.HasPrefix(typ, "[]") {
+		return false
+	}
+	if strings.HasPrefix(typ, "*") {
+		return false
+	}
+	return true
+}
+
 type Schema struct {
 	Type                 Type
 	Description          string
@@ -112,6 +129,9 @@ func (s *Schema) syncAttributes() {
 			}
 		default:
 			attr.Type = prop.Type.GoType()
+		}
+		if attr.Opt && isStruct(attr.Type) {
+			attr.Type = "*" + attr.Type
 		}
 		s.Attributes = append(s.Attributes, attr)
 	}

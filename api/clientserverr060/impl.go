@@ -31,7 +31,7 @@ func setPresence(ctx context.Context, userID string, body SetPresenceBody) (SetP
 	props := map[string]interface{}{
 		"presence": body.Presence,
 	}
-	if body.StatusMsg != "" { // FIXME optional
+	if body.StatusMsg != nil {
 		props["statusMessage"] = body.StatusMsg
 	}
 	if body.Presence == "online" {
@@ -56,8 +56,7 @@ func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error
 	}
 	presence, _ := props["presence"]
 	resp := GetPresenceResponse{
-		Presence:      presence.(string),
-		LastActiveAgo: 0,
+		Presence: presence.(string),
 	}
 	if v, ok := props["lastActiveAgo"]; ok {
 		ago := data.NowMs() - int64(v.(int))
@@ -70,7 +69,8 @@ func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error
 				panic(err)
 			}
 		}
-		resp.LastActiveAgo = int(ago)
+		val := int(ago)
+		resp.LastActiveAgo = &val
 	}
 	if v, ok := props["displayMessage"]; ok {
 		msg := v.(string)

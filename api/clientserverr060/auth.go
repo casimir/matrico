@@ -15,11 +15,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const FlowPassword = "m.login.password"
+var FlowPassword = "m.login.password"
 
 func getLoginFlows(ctx context.Context) (GetLoginFlowsResponse, error) {
 	resp := GetLoginFlowsResponse{}
-	resp.Flows = append(resp.Flows, GetLoginFlowsResponseFlows{FlowPassword})
+	resp.Flows = append(resp.Flows, GetLoginFlowsResponseFlows{&FlowPassword})
 	return resp, nil
 }
 
@@ -27,12 +27,11 @@ func makeUsername(name string) string {
 	return "@" + strings.ToLower(name) + ":homeserver.local"
 }
 
-func makeDeviceID(initial, username string) string {
-	deviceID := initial
-	if deviceID == "" {
-		deviceID = fmt.Sprintf("%s_%d", username, time.Now().Unix())
+func makeDeviceID(initial *string, username string) string {
+	if initial != nil && *initial != "" {
+		return *initial
 	}
-	return deviceID
+	return fmt.Sprintf("%s_%d", username, time.Now().Unix())
 }
 
 func register(ctx context.Context, body RegisterBody, query url.Values) (RegisterResponse, error) {
@@ -40,12 +39,12 @@ func register(ctx context.Context, body RegisterBody, query url.Values) (Registe
 		return RegisterResponse{}, common.ErrUnknown
 	}
 
-	if body.Username == "" && body.Password == "" {
+	if body.Username == nil && body.Password == nil {
 		log.Print("? empty register request")
 		return RegisterResponse{}, nil
 	}
 
-	username := makeUsername(body.Username)
+	username := makeUsername(*body.Username)
 	if username == "" {
 		log.Printf("invalid username: %s", body.Username)
 		return RegisterResponse{}, common.New("invalid username")
@@ -63,16 +62,20 @@ func register(ctx context.Context, body RegisterBody, query url.Values) (Registe
 		return RegisterResponse{}, common.ErrUnknown
 	}
 
-	if body.Password == "" {
+	if body.Password == nil {
 		return RegisterResponse{}, common.New("invalid password")
 	}
-	hashed, err := bcrypt.GenerateFromPassword([]byte(body.Password), -1)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(*body.Password), -1)
 	if err != nil {
 		panic(err)
 	}
 
-	deviceID := makeDeviceID(body.DeviceID, body.Username)
+	deviceID := makeDeviceID(body.DeviceID, *body.Username)
 	token := uuid.New().String()
+	displayName := ""
+	if body.InitialDeviceDisplayName != nil {
+		displayName = *body.InitialDeviceDisplayName
+	}
 
 	user := rg.Node{
 		Label: "User",
@@ -85,7 +88,7 @@ func register(ctx context.Context, body RegisterBody, query url.Values) (Registe
 		Label: "Device",
 		Properties: map[string]interface{}{
 			"deviceId":    deviceID,
-			"displayName": body.InitialDeviceDisplayName,
+			"displayName": displayName,
 			"token":       token,
 		},
 	}
@@ -106,9 +109,9 @@ func register(ctx context.Context, body RegisterBody, query url.Values) (Registe
 	resp := RegisterResponse{
 		UserID: username,
 	}
-	if !body.InhibitLogin {
-		resp.AccessToken = token
-		resp.DeviceID = deviceID
+	if body.InhibitLogin == nil || !*body.InhibitLogin {
+		resp.AccessToken = &token
+		resp.DeviceID = &deviceID
 	}
 
 	return resp, nil
@@ -126,21 +129,21 @@ func login(ctx context.Context, body LoginBody) (LoginResponse, error) {
 
 	d := common.Data(ctx)
 	user := data.NewUser(username)
-	ok, err := user.CheckPassword(d, body.Password)
+	ok, err := user.CheckPassword(d, *body.Password)
 	if err != nil || !ok {
 		return LoginResponse{}, common.ErrForbidden
 	}
 	device := data.NewDevice(makeDeviceID(body.DeviceID, body.Identifier["user"].(string)))
 	token := uuid.New().String()
-	if err := user.ActivateDevice(d, device, token, body.InitialDeviceDisplayName); err != nil {
+	if err := user.ActivateDevice(d, device, token, *body.InitialDeviceDisplayName); err != nil {
 		log.Print(err)
 		return LoginResponse{}, common.ErrUnknown
 	}
 
 	resp := LoginResponse{
-		UserID:      username,
-		AccessToken: token,
-		DeviceID:    device.DeviceID,
+		UserID:      &username,
+		AccessToken: &token,
+		DeviceID:    &device.DeviceID,
 	}
 	return resp, nil
 }

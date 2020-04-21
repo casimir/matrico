@@ -58,7 +58,7 @@ func DefineFilter(w http.ResponseWriter, r *http.Request) {
 type GetLoginFlowsResponseFlows struct {
 	// The login type. This is supplied as the ``type`` when
 	// logging in.
-	Type string `json:"type,omitempty"`
+	Type *string `json:"type,omitempty"`
 }
 
 type GetLoginFlowsResponse struct {
@@ -75,45 +75,45 @@ func GetLoginFlows(w http.ResponseWriter, r *http.Request) {
 
 type LoginBody struct {
 	// Third party identifier for the user.  Deprecated in favour of ``identifier``.
-	Address string `json:"address,omitempty"`
+	Address *string `json:"address,omitempty"`
 	// ID of the client device. If this does not correspond to a
 	// known client device, a new device will be created. The server
 	// will auto-generate a device_id if this is not specified.
-	DeviceID string `json:"device_id,omitempty"`
+	DeviceID *string `json:"device_id,omitempty"`
 	// Identification information for the user.
 	Identifier map[string]interface{} `json:"identifier,omitempty"`
 	// A display name to assign to the newly-created device. Ignored
 	// if ``device_id`` corresponds to a known device.
-	InitialDeviceDisplayName string `json:"initial_device_display_name,omitempty"`
+	InitialDeviceDisplayName *string `json:"initial_device_display_name,omitempty"`
 	// When logging in using a third party identifier, the medium of the identifier. Must be 'email'.  Deprecated in favour of ``identifier``.
-	Medium string `json:"medium,omitempty"`
+	Medium *string `json:"medium,omitempty"`
 	// Required when ``type`` is ``m.login.password``. The user's
 	// password.
-	Password string `json:"password,omitempty"`
+	Password *string `json:"password,omitempty"`
 	// Required when ``type`` is ``m.login.token``. Part of `Token-based`_ login.
-	Token string `json:"token,omitempty"`
+	Token *string `json:"token,omitempty"`
 	// The login type being used.
 	Type string `json:"type"`
 	// The fully qualified user ID or just local part of the user ID, to log in.  Deprecated in favour of ``identifier``.
-	User string `json:"user,omitempty"`
+	User *string `json:"user,omitempty"`
 }
 
 type LoginResponse struct {
 	// An access token for the account.
 	// This access token can then be used to authorize other requests.
-	AccessToken string `json:"access_token,omitempty"`
+	AccessToken *string `json:"access_token,omitempty"`
 	// ID of the logged-in device. Will be the same as the
 	// corresponding parameter in the request, if one was specified.
-	DeviceID string `json:"device_id,omitempty"`
+	DeviceID *string `json:"device_id,omitempty"`
 	// The server_name of the homeserver on which the account has
 	// been registered.
 	//
 	// **Deprecated**. Clients should extract the server_name from
 	// ``user_id`` (by splitting at the first colon) if they require
 	// it. Note also that ``homeserver`` is not spelt this way.
-	HomeServer string `json:"home_server,omitempty"`
+	HomeServer *string `json:"home_server,omitempty"`
 	// The fully-qualified Matrix ID that has been registered.
-	UserID string `json:"user_id,omitempty"`
+	UserID *string `json:"user_id,omitempty"`
 	// Optional client configuration provided by the server. If present,
 	// clients SHOULD use the provided object to reconfigure themselves,
 	// optionally validating the URLs within. This object takes the same
@@ -155,7 +155,7 @@ type SetPresenceBody struct {
 	// The new presence state.
 	Presence string `json:"presence"`
 	// The status message to attach to this state.
-	StatusMsg string `json:"status_msg,omitempty"`
+	StatusMsg *string `json:"status_msg,omitempty"`
 }
 
 type SetPresenceResponse map[string]interface{}
@@ -181,10 +181,10 @@ func SetPresence(w http.ResponseWriter, r *http.Request) {
 
 type GetPresenceResponse struct {
 	// Whether the user is currently active
-	CurrentlyActive bool `json:"currently_active,omitempty"`
+	CurrentlyActive *bool `json:"currently_active,omitempty"`
 	// The length of time in milliseconds since an action was performed
 	// by this user.
-	LastActiveAgo int `json:"last_active_ago,omitempty"`
+	LastActiveAgo *int `json:"last_active_ago,omitempty"`
 	// This user's presence.
 	Presence string `json:"presence"`
 	// The state message for this user if one was set.
@@ -228,37 +228,37 @@ type RegisterBody struct {
 	// ID of the client device. If this does not correspond to a
 	// known client device, a new device will be created. The server
 	// will auto-generate a device_id if this is not specified.
-	DeviceID string `json:"device_id,omitempty"`
+	DeviceID *string `json:"device_id,omitempty"`
 	// If true, an ``access_token`` and ``device_id`` should not be
 	// returned from this call, therefore preventing an automatic
 	// login. Defaults to false.
-	InhibitLogin bool `json:"inhibit_login,omitempty"`
+	InhibitLogin *bool `json:"inhibit_login,omitempty"`
 	// A display name to assign to the newly-created device. Ignored
 	// if ``device_id`` corresponds to a known device.
-	InitialDeviceDisplayName string `json:"initial_device_display_name,omitempty"`
+	InitialDeviceDisplayName *string `json:"initial_device_display_name,omitempty"`
 	// The desired password for the account.
-	Password string `json:"password,omitempty"`
+	Password *string `json:"password,omitempty"`
 	// The basis for the localpart of the desired Matrix ID. If omitted,
 	// the homeserver MUST generate a Matrix ID local part.
-	Username string `json:"username,omitempty"`
+	Username *string `json:"username,omitempty"`
 }
 
 type RegisterResponse struct {
 	// An access token for the account.
 	// This access token can then be used to authorize other requests.
 	// Required if the ``inhibit_login`` option is false.
-	AccessToken string `json:"access_token,omitempty"`
+	AccessToken *string `json:"access_token,omitempty"`
 	// ID of the registered device. Will be the same as the
 	// corresponding parameter in the request, if one was specified.
 	// Required if the ``inhibit_login`` option is false.
-	DeviceID string `json:"device_id,omitempty"`
+	DeviceID *string `json:"device_id,omitempty"`
 	// The server_name of the homeserver on which the account has
 	// been registered.
 	//
 	// **Deprecated**. Clients should extract the server_name from
 	// ``user_id`` (by splitting at the first colon) if they require
 	// it. Note also that ``homeserver`` is not spelt this way.
-	HomeServer string `json:"home_server,omitempty"`
+	HomeServer *string `json:"home_server,omitempty"`
 	// The fully-qualified Matrix user ID (MXID) that has been registered.
 	//
 	// Any user ID returned by this API must conform to the grammar given in the
@@ -337,10 +337,10 @@ type SyncResponseToDevice map[string]interface{}
 
 type SyncResponse struct {
 	// The global private data created by this user.
-	AccountData SyncResponseAccountData `json:"account_data,omitempty"`
+	AccountData *SyncResponseAccountData `json:"account_data,omitempty"`
 	// Information on end-to-end device updates, as specified in
 	// |device_lists_sync|_.
-	DeviceLists SyncResponseDeviceLists `json:"device_lists,omitempty"`
+	DeviceLists *SyncResponseDeviceLists `json:"device_lists,omitempty"`
 	// Information on end-to-end encryption keys, as specified
 	// in |device_lists_sync|_.
 	DeviceOneTimeKeysCount map[string]int `json:"device_one_time_keys_count,omitempty"`
@@ -348,12 +348,12 @@ type SyncResponse struct {
 	// ``/sync`` request.
 	NextBatch string `json:"next_batch"`
 	// The updates to the presence status of other users.
-	Presence SyncResponsePresence `json:"presence,omitempty"`
+	Presence *SyncResponsePresence `json:"presence,omitempty"`
 	// Updates to rooms.
-	Rooms SyncResponseRooms `json:"rooms,omitempty"`
+	Rooms *SyncResponseRooms `json:"rooms,omitempty"`
 	// Information on the send-to-device messages for the client
 	// device, as defined in |send_to_device_sync|_.
-	ToDevice SyncResponseToDevice `json:"to_device,omitempty"`
+	ToDevice *SyncResponseToDevice `json:"to_device,omitempty"`
 }
 
 // Synchronise the client's state with the latest state on the server.
