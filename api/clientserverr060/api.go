@@ -19,6 +19,8 @@ func RegisterAPI(r chi.Router) {
 		r.Use(common.AuthorizationMiddleware)
 		r.Post("/_matrix/client/r0/user/{userId}/filter", DefineFilter)
 		r.Post("/_matrix/client/r0/logout", Logout)
+		r.Put("/_matrix/client/r0/presence/{userId}/status", SetPresence)
+		r.Get("/_matrix/client/r0/presence/{userId}/status", GetPresence)
 		r.Get("/_matrix/client/r0/pushrules/", GetPushRules)
 		r.Get("/_matrix/client/r0/sync", Sync)
 		r.Get("/_matrix/client/r0/account/whoami", GetTokenOwner)
@@ -146,6 +148,57 @@ type LogoutResponse map[string]interface{}
 // `Device keys <#device-keys>`_ for the device are deleted alongside the device.
 func Logout(w http.ResponseWriter, r *http.Request) {
 	data, err := logout(r.Context())
+	common.ResponseHandler(w, data, err)
+}
+
+type SetPresenceBody struct {
+	// The new presence state.
+	Presence string `json:"presence"`
+	// The status message to attach to this state.
+	StatusMsg string `json:"status_msg,omitempty"`
+}
+
+type SetPresenceResponse map[string]interface{}
+
+// This API sets the given user's presence state. When setting the status,
+// the activity time is updated to reflect that activity; the client does
+// not need to specify the ``last_active_ago`` field. You cannot set the
+// presence state of another user.
+func SetPresence(w http.ResponseWriter, r *http.Request) {
+	userId, erruserId := url.QueryUnescape(chi.URLParam(r, "userId"))
+	if erruserId != nil {
+		common.ResponseHandler(w, nil, erruserId)
+		return
+	}
+	var body SetPresenceBody
+	if err := common.UnmarshalBody(r, &body); err != nil {
+		common.ResponseHandler(w, nil, err)
+		return
+	}
+	data, err := setPresence(r.Context(), userId, body)
+	common.ResponseHandler(w, data, err)
+}
+
+type GetPresenceResponse struct {
+	// Whether the user is currently active
+	CurrentlyActive bool `json:"currently_active,omitempty"`
+	// The length of time in milliseconds since an action was performed
+	// by this user.
+	LastActiveAgo int `json:"last_active_ago,omitempty"`
+	// This user's presence.
+	Presence string `json:"presence"`
+	// The state message for this user if one was set.
+	StatusMsg *string `json:"status_msg,omitempty"`
+}
+
+// Get the given user's presence state.
+func GetPresence(w http.ResponseWriter, r *http.Request) {
+	userId, erruserId := url.QueryUnescape(chi.URLParam(r, "userId"))
+	if erruserId != nil {
+		common.ResponseHandler(w, nil, erruserId)
+		return
+	}
+	data, err := getPresence(r.Context(), userId)
 	common.ResponseHandler(w, data, err)
 }
 

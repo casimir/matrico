@@ -108,6 +108,22 @@ func (d *DataGraph) NodeDelete(n Noder) (bool, error) {
 	return !res.Empty(), err
 }
 
+func (d *DataGraph) NodeGet(n Noder) (map[string]interface{}, bool, error) {
+	q := fmt.Sprintf(`MATCH %s RETURN n`, nodeSource(n, "n", false))
+	res, err := d.Query(q)
+	defer res.Close()
+	if err != nil {
+		return nil, false, err
+	}
+	if !res.Next() {
+		// TODO ErrNotFound
+		return nil, false, nil
+	}
+	r := res.Record()
+	node := r.GetByIndex(0).(*rg.Node)
+	return node.Properties, true, nil
+}
+
 func (d *DataGraph) NodeSet(n Noder, props map[string]interface{}) error {
 	var setProps []string
 	for k, v := range props {

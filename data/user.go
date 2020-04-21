@@ -75,3 +75,11 @@ func (n *User) ActivateDevice(d *DataGraph, device *Device, token, displayName s
 	}
 	return nil
 }
+
+func (n *User) MarkOnline(d *DataGraph) error {
+	props := map[string]interface{}{
+		"presence":      "online",
+		"lastActiveAgo": NowMs(),
+	}
+	return d.NodeSet(n, props)
+}

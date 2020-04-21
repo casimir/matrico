@@ -2,7 +2,13 @@ package clientserverr060
 
 import (
 	"context"
+	"log"
 	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/casimir/matrico/api/common"
+	"github.com/casimir/matrico/data"
 )
 
 func defineFilter(ctx context.Context, userID string, body DefineFilterBody) (DefineFilterResponse, error) {
@@ -13,6 +19,64 @@ func defineFilter(ctx context.Context, userID string, body DefineFilterBody) (De
 func getPushRules(ctx context.Context) (GetPushRulesResponse, error) {
 	// TODO placeholder
 	return GetPushRulesResponse{}, nil
+}
+
+func setPresence(ctx context.Context, userID string, body SetPresenceBody) (SetPresenceResponse, error) {
+	username := ctx.Value(common.CtxUserKey).(string)
+	if userID != username {
+		log.Printf("%q != %q", userID, username)
+		return SetPresenceResponse{}, common.ErrForbidden
+	}
+	d := common.Data(ctx)
+	props := map[string]interface{}{
+		"presence": body.Presence,
+	}
+	if body.StatusMsg != "" { // FIXME optional
+		props["statusMessage"] = body.StatusMsg
+	}
+	if body.Presence == "online" {
+		props["lastActiveAgo"] = int(data.NowMs())
+	}
+	err := d.NodeSet(data.NewUser(username), props)
+	// TODO create event
+	return SetPresenceResponse{}, err
+}
+
+func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error) {
+	// TODO 403
+	// Presence information is shared with all users who share a room with the target user. In large public rooms this could be undesirable.
+	d := common.Data(ctx)
+	user := data.NewUser(userID)
+	props, ok, err := d.NodeGet(user)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		return GetPresenceResponse{}, common.ErrNotFound
+	}
+	presence, _ := props["presence"]
+	resp := GetPresenceResponse{
+		Presence:      presence.(string),
+		LastActiveAgo: 0,
+	}
+	if v, ok := props["lastActiveAgo"]; ok {
+		ago := data.NowMs() - int64(v.(int))
+		threshold := 5 * time.Minute
+		tooLong := time.Duration(ago)*time.Millisecond > threshold
+		if resp.Presence == "online" && tooLong {
+			resp.Presence = "unavailable"
+			props := map[string]interface{}{"presence": resp.Presence}
+			if err := d.NodeSet(user, props); err != nil {
+				panic(err)
+			}
+		}
+		resp.LastActiveAgo = int(ago)
+	}
+	if v, ok := props["displayMessage"]; ok {
+		msg := v.(string)
+		resp.StatusMsg = &msg
+	}
+	return resp, nil
 }
 
 func sync(ctx context.Context, query url.Values) (SyncResponse, error) {
