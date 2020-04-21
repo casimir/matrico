@@ -6,3 +6,10 @@ services:
         - "6379:6379"
     volumes:
       - ./.data/redis:/data
+    entrypoint: redis-server --loadmodule /usr/lib/redis/modules/redisgraph.so --appendonly yes
+  redisinsights:
+    image: redislabs/redisinsight
+    ports:
+        - "8001:8001"
+    volumes:
+      - ./.data/redisinsight:/db
