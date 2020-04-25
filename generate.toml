@@ -2,6 +2,7 @@
 name = "client-server"
 version = "r0.6.0"
 release = "client_server/r0.6.0"
+definitions_extra = ["event-schemas"]
 blacklist = [
     "add3PID",
     "ban",

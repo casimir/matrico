@@ -53,13 +53,22 @@ func cacheArchive(archive, cacheDir, root string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		components := strings.SplitN(f.Name, "/", 4)
-		keep := len(components) > 3 && components[1] == "api" && components[2] == root
-		if !keep {
+		ext := filepath.Ext(f.Name)
+		if !(ext == "" || ext == ".yaml") {
 			continue
 		}
 
-		dest := path.Join(cacheDir, components[3])
+		components := strings.SplitN(f.Name, "/", 4)
+		file := ""
+		if len(components) > 3 && components[1] == "api" && components[2] == root {
+			file = components[3]
+		} else if len(components) > 2 && components[1] == root {
+			file = filepath.Join(components[2:]...)
+		} else {
+			continue
+		}
+
+		dest := filepath.Join(cacheDir, file)
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(dest, os.ModePerm); err != nil {
 				return err
@@ -82,7 +91,7 @@ func cacheArchive(archive, cacheDir, root string) error {
 	return nil
 }
 
-func runGenerate(name, version, release string, skipOperationIDs []string) error {
+func runGenerate(name, version, release string, defsExtra, skipOperationIDs []string) error {
 	cacheDir := buildSpecCacheDir(name, version)
 	info, _ := os.Stat(cacheDir)
 	var archive string
@@ -95,6 +104,15 @@ func runGenerate(name, version, release string, skipOperationIDs []string) error
 		log.Printf("filling cache: %s", cacheDir)
 		if err := cacheArchive(archive, cacheDir, name); err != nil {
 			return err
+		}
+		for _, it := range defsExtra {
+			dir := filepath.Join(cacheDir, "definitions", it)
+			if err := os.RemoveAll(dir); err != nil {
+				return err
+			}
+			if err := cacheArchive(archive, dir, it); err != nil {
+				return err
+			}
 		}
 	} else {
 		log.Printf("using cache: %s", cacheDir)
@@ -131,9 +149,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = config
 	for _, it := range config.Specs {
-		if err := runGenerate(it.Name, it.Version, it.Release, it.Blacklist); err != nil {
+		if err := runGenerate(it.Name, it.Version, it.Release, it.DefsExtra, it.Blacklist); err != nil {
 			log.Fatal(err)
 		}
 	}

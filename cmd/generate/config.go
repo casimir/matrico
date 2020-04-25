@@ -13,6 +13,7 @@ type Config struct {
 		Name      string
 		Version   string
 		Release   string
+		DefsExtra []string `toml:"definitions_extra"`
 		Blacklist []string
 	}
 }
