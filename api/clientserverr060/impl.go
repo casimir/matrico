@@ -3,8 +3,6 @@ package clientserverr060
 import (
 	"context"
 	"log"
-	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/casimir/matrico/api/common"
@@ -28,18 +26,15 @@ func setPresence(ctx context.Context, userID string, body SetPresenceBody) (SetP
 		return SetPresenceResponse{}, common.ErrForbidden
 	}
 	d := common.Data(ctx)
-	props := map[string]interface{}{
-		"presence": body.Presence,
+	presence, ok := data.ToPresence(body.Presence)
+	if !ok {
+		return SetPresenceResponse{}, common.New("invalid presence")
 	}
-	if body.StatusMsg != nil {
-		props["statusMessage"] = body.StatusMsg
+	user := data.NewUser(username)
+	if err := user.MarkAs(d, presence, body.StatusMsg); err != nil {
+		return SetPresenceResponse{}, err
 	}
-	if body.Presence == "online" {
-		props["lastActiveAgo"] = int(data.NowMs())
-	}
-	err := d.NodeSet(data.NewUser(username), props)
-	// TODO create event
-	return SetPresenceResponse{}, err
+	return SetPresenceResponse{}, nil
 }
 
 func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error) {
@@ -54,17 +49,18 @@ func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error
 	if !ok {
 		return GetPresenceResponse{}, common.ErrNotFound
 	}
-	presence, _ := props["presence"]
+	p, _ := props["presence"]
+	presence, _ := data.ToPresence(p.(string))
 	resp := GetPresenceResponse{
-		Presence: presence.(string),
+		Presence: presence.String(),
 	}
 	if v, ok := props["lastActiveAgo"]; ok {
 		ago := data.NowMs() - int64(v.(int))
 		threshold := 5 * time.Minute
 		idle := time.Duration(ago)*time.Millisecond > threshold
-		if resp.Presence == "online" && idle {
-			resp.Presence = "unavailable"
-			if err := user.MarkUnavailable(d); err != nil {
+		if presence == data.Online && idle {
+			resp.Presence = data.Unavailable.String()
+			if err := user.MarkAs(d, data.Unavailable, nil); err != nil {
 				panic(err)
 			}
 		}
@@ -74,31 +70,6 @@ func getPresence(ctx context.Context, userID string) (GetPresenceResponse, error
 	if v, ok := props["displayMessage"]; ok {
 		msg := v.(string)
 		resp.StatusMsg = &msg
-	}
-	return resp, nil
-}
-
-func sync(ctx context.Context, query url.Values) (SyncResponse, error) {
-	timeout := query.Get("timeout")
-	if timeout == "" {
-		timeout = "0"
-	}
-	timeoutMs, err := strconv.Atoi(timeout)
-	if err != nil {
-		return SyncResponse{}, common.New("invalid timeout")
-	}
-
-	done := make(chan bool, 1)
-	resp := SyncResponse{}
-	go func() {
-		time.Sleep(1000 * time.Second)
-		done <- true
-	}()
-	select {
-	case <-done:
-		log.Print("got a new event")
-	case <-time.After(time.Duration(timeoutMs) * time.Millisecond):
-		resp.NextBatch = strconv.FormatInt(time.Now().Unix(), 10)
 	}
 	return resp, nil
 }

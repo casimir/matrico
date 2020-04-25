@@ -2,11 +2,23 @@ package data
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/gomodule/redigo/redis"
 	rg "github.com/redislabs/redisgraph-go"
 )
+
+func toString(i interface{}) string {
+	switch i.(type) {
+	case int32, int64:
+		return strconv.FormatInt(i.(int64), 10)
+	default:
+		return rg.ToString(i)
+	}
+}
+
+type EventStream chan Event
 
 type ClosableResult struct {
 	conn redis.Conn
@@ -23,8 +35,9 @@ func (cr *ClosableResult) Close() error {
 }
 
 type DataGraph struct {
-	graphName string
-	pool      *redis.Pool
+	graphName    string
+	pool         *redis.Pool
+	eventStreams map[EventStream]struct{}
 }
 
 func New(graph string) *DataGraph {
@@ -32,7 +45,11 @@ func New(graph string) *DataGraph {
 		MaxIdle: 3,
 		Dial:    func() (redis.Conn, error) { return redis.Dial("tcp", "0.0.0.0:6379") },
 	}
-	return &DataGraph{graph, &pool}
+	return &DataGraph{
+		graphName:    graph,
+		pool:         &pool,
+		eventStreams: make(map[EventStream]struct{}),
+	}
 }
 
 func (d *DataGraph) DELETEME() rg.Graph {
@@ -80,7 +97,7 @@ type Noder interface {
 }
 
 func nodeSource(n Noder, name string, withProps bool) string {
-	props := []string{fmt.Sprintf("%s:%v", n.Key(), rg.ToString(n.KeyVal()))}
+	props := []string{fmt.Sprintf("%s:%v", n.Key(), toString(n.KeyVal()))}
 	if withProps {
 		for k, v := range n.Props() {
 			props = append(props, fmt.Sprintf("%s:%v", k, rg.ToString(v)))
@@ -116,7 +133,6 @@ func (d *DataGraph) NodeGet(n Noder) (map[string]interface{}, bool, error) {
 		return nil, false, err
 	}
 	if !res.Next() {
-		// TODO ErrNotFound
 		return nil, false, nil
 	}
 	r := res.Record()
@@ -127,7 +143,7 @@ func (d *DataGraph) NodeGet(n Noder) (map[string]interface{}, bool, error) {
 func (d *DataGraph) NodeSet(n Noder, props map[string]interface{}) error {
 	var setProps []string
 	for k, v := range props {
-		setProps = append(setProps, fmt.Sprintf("n.%s=%v", k, rg.ToString(v)))
+		setProps = append(setProps, fmt.Sprintf("n.%s=%v", k, toString(v)))
 	}
 	q := fmt.Sprintf(
 		`MATCH %s SET %s`,
@@ -146,4 +162,23 @@ func (d *DataGraph) LinkNodes(src, dst Noder, label string) error {
 	res, err := d.Query(q)
 	defer res.Close()
 	return err
+}
+
+func (d *DataGraph) ListenNextEvent() EventStream {
+	stream := make(EventStream, 1)
+	d.eventStreams[stream] = struct{}{}
+	return stream
+}
+
+func (d *DataGraph) CancelEventListener(es EventStream) {
+	if _, ok := d.eventStreams[es]; ok {
+		delete(d.eventStreams, es)
+	}
+}
+
+func (d *DataGraph) BroadcastEvent(event *Event) {
+	for stream := range d.eventStreams {
+		stream <- *event
+		delete(d.eventStreams, stream)
+	}
 }
