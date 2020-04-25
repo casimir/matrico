@@ -1,4 +1,4 @@
-// This file is generated and not meant to be edited by hand."
+// This file is generated and not meant to be edited by hand.
 
 package {{ .Package }}
 
