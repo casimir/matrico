@@ -88,11 +88,13 @@ type Schema struct {
 	AdditionalProperties *AdditionalProperties `yaml:"additionalProperties"`
 	Items                *Schema
 	Required             []string
-	Ref                  string `yaml:"$ref"`
+	Ref                  string    `yaml:"$ref"`
+	AllOf                []*Schema `yaml:"allOf"`
 
 	Identifier string    `yaml:"-"`
 	Attributes []GoAttr  `yaml:"-"`
 	Nested     []*Schema `yaml:"-"`
+	NestedDef  []Schema  `yaml:"-"`
 }
 
 func (s *Schema) syncAttributes() {
@@ -112,8 +114,11 @@ func (s *Schema) syncAttributes() {
 		case "array":
 			if prop.Items.Type.string == "object" {
 				prop.Items.Identifier = s.Identifier + attr.ID
-				prop.Items.syncAttributes()
-				s.Nested = append(s.Nested, prop.Items)
+				if s.Identifier == "" {
+					s.NestedDef = append(s.NestedDef, *prop.Items)
+				} else {
+					s.Nested = append(s.Nested, prop.Items)
+				}
 				attr.Type = "[]" + prop.Items.Identifier
 			} else {
 				attr.Type = "[]" + prop.Items.Type.GoType()
@@ -123,8 +128,11 @@ func (s *Schema) syncAttributes() {
 				attr.Type = "map[string]" + prop.AdditionalProperties.Type.GoType()
 			} else {
 				prop.Identifier = s.Identifier + attr.ID
-				prop.syncAttributes()
-				s.Nested = append(s.Nested, prop)
+				if s.Identifier == "" {
+					s.NestedDef = append(s.NestedDef, *prop)
+				} else {
+					s.Nested = append(s.Nested, prop)
+				}
 				attr.Type = prop.Identifier
 			}
 		default:
@@ -137,19 +145,36 @@ func (s *Schema) syncAttributes() {
 	}
 }
 
-func (s *Schema) FollowRef(defs map[string]*Schema) {
-	if def, ok := defs[s.Ref]; ok {
-		s.Type = def.Type
-		s.Properties = def.Properties
-		s.AdditionalProperties = def.AdditionalProperties
-		s.Required = def.Required
-	}
+func (s *Schema) overrideFrom(other *Schema) {
+	s.Type = other.Type
+	s.Properties = other.Properties
+	s.AdditionalProperties = other.AdditionalProperties
+	s.Required = other.Required
+}
 
+func (s *Schema) FollowRef(defs map[string]*Schema) {
+	key := s.Ref
+	if !strings.HasPrefix(key, "definitions/") {
+		key = "definitions/" + key
+	}
+	if def, ok := defs[key]; ok {
+		s.overrideFrom(def)
+	} else if s.Ref != "" {
+		log.Printf("! missing definition: %s", key)
+	}
+	for _, it := range s.AllOf {
+		it.FollowRef(defs)
+		s.overrideFrom(it)
+		s.NestedDef = append(s.NestedDef, it.NestedDef...)
+	}
 	for _, it := range s.Properties {
 		it.FollowRef(defs)
-		it.syncAttributes()
+		s.NestedDef = append(s.NestedDef, it.NestedDef...)
 	}
-
+	if s.Items != nil {
+		s.Items.FollowRef(defs)
+		s.NestedDef = append(s.NestedDef, s.Items.NestedDef...)
+	}
 	s.syncAttributes()
 }
 

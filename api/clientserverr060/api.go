@@ -27,7 +27,180 @@ func RegisterAPI(r chi.Router) {
 	})
 }
 
-type DefineFilterBody map[string]interface{}
+// Common structs from specification's definitions.
+
+type AccountData struct {
+	// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. If omitted, ``url`` key is not considered for filtering.
+	ContainsUrl *bool `json:"contains_url,omitempty"`
+	// If ``true``, sends all membership events for all events, even if they have already
+	// been sent to the client. Does not
+	// apply unless ``lazy_load_members`` is ``true``. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	IncludeRedundantMembers *bool `json:"include_redundant_members,omitempty"`
+	// If ``true``, enables lazy-loading of membership events. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	LazyLoadMembers *bool `json:"lazy_load_members,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter.
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included.
+	Rooms []string `json:"rooms,omitempty"`
+}
+
+type Content map[string]interface{}
+
+type Ephemeral struct {
+	// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. If omitted, ``url`` key is not considered for filtering.
+	ContainsUrl *bool `json:"contains_url,omitempty"`
+	// If ``true``, sends all membership events for all events, even if they have already
+	// been sent to the client. Does not
+	// apply unless ``lazy_load_members`` is ``true``. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	IncludeRedundantMembers *bool `json:"include_redundant_members,omitempty"`
+	// If ``true``, enables lazy-loading of membership events. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	LazyLoadMembers *bool `json:"lazy_load_members,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter.
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included.
+	Rooms []string `json:"rooms,omitempty"`
+}
+
+type Events struct {
+	// The fields in this object will vary depending on the type of event. When interacting with the REST API, this is the HTTP body.
+	Content Content `json:"content"`
+	// The type of event. This SHOULD be namespaced similar to Java package naming conventions e.g. 'com.example.subdomain.event.type'
+	Type string `json:"type"`
+}
+
+type Presence struct {
+	// The maximum number of events to return.
+	Limit *int `json:"limit,omitempty"`
+	// A list of sender IDs to exclude. If this list is absent then no senders are excluded. A matching sender will be excluded even if it is listed in the ``'senders'`` filter.
+	NotSenders []string `json:"not_senders,omitempty"`
+	// A list of event types to exclude. If this list is absent then no event types are excluded. A matching type will be excluded even if it is listed in the ``'types'`` filter. A '*' can be used as a wildcard to match any sequence of characters.
+	NotTypes []string `json:"not_types,omitempty"`
+	// A list of senders IDs to include. If this list is absent then all senders are included.
+	Senders []string `json:"senders,omitempty"`
+	// A list of event types to include. If this list is absent then all event types are included. A ``'*'`` can be used as a wildcard to match any sequence of characters.
+	Types []string `json:"types,omitempty"`
+}
+
+type Room struct {
+	// The per user account data to include for rooms.
+	AccountData *AccountData `json:"account_data,omitempty"`
+	// The events that aren't recorded in the room history, e.g. typing and receipts, to include for rooms.
+	Ephemeral *Ephemeral `json:"ephemeral,omitempty"`
+	// Include rooms that the user has left in the sync, default false
+	IncludeLeave *bool `json:"include_leave,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter. This filter is applied before the filters in ``ephemeral``, ``state``, ``timeline`` or ``account_data``
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included. This filter is applied before the filters in ``ephemeral``, ``state``, ``timeline`` or ``account_data``
+	Rooms []string `json:"rooms,omitempty"`
+	// The state events to include for rooms.
+	State *State `json:"state,omitempty"`
+	// The message and state update events to include for rooms.
+	Timeline *Timeline `json:"timeline,omitempty"`
+}
+
+type State struct {
+	// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. If omitted, ``url`` key is not considered for filtering.
+	ContainsUrl *bool `json:"contains_url,omitempty"`
+	// If ``true``, sends all membership events for all events, even if they have already
+	// been sent to the client. Does not
+	// apply unless ``lazy_load_members`` is ``true``. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	IncludeRedundantMembers *bool `json:"include_redundant_members,omitempty"`
+	// If ``true``, enables lazy-loading of membership events. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	LazyLoadMembers *bool `json:"lazy_load_members,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter.
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included.
+	Rooms []string `json:"rooms,omitempty"`
+}
+
+type Timeline struct {
+	// If ``true``, includes only events with a ``url`` key in their content. If ``false``, excludes those events. If omitted, ``url`` key is not considered for filtering.
+	ContainsUrl *bool `json:"contains_url,omitempty"`
+	// If ``true``, sends all membership events for all events, even if they have already
+	// been sent to the client. Does not
+	// apply unless ``lazy_load_members`` is ``true``. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	IncludeRedundantMembers *bool `json:"include_redundant_members,omitempty"`
+	// If ``true``, enables lazy-loading of membership events. See
+	// `Lazy-loading room members <#lazy-loading-room-members>`_
+	// for more information. Defaults to ``false``.
+	LazyLoadMembers *bool `json:"lazy_load_members,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter.
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included.
+	Rooms []string `json:"rooms,omitempty"`
+}
+
+// Handlers types and definitions.
+
+type DefineFilterBodyAccountData struct {
+	// The maximum number of events to return.
+	Limit *int `json:"limit,omitempty"`
+	// A list of sender IDs to exclude. If this list is absent then no senders are excluded. A matching sender will be excluded even if it is listed in the ``'senders'`` filter.
+	NotSenders []string `json:"not_senders,omitempty"`
+	// A list of event types to exclude. If this list is absent then no event types are excluded. A matching type will be excluded even if it is listed in the ``'types'`` filter. A '*' can be used as a wildcard to match any sequence of characters.
+	NotTypes []string `json:"not_types,omitempty"`
+	// A list of senders IDs to include. If this list is absent then all senders are included.
+	Senders []string `json:"senders,omitempty"`
+	// A list of event types to include. If this list is absent then all event types are included. A ``'*'`` can be used as a wildcard to match any sequence of characters.
+	Types []string `json:"types,omitempty"`
+}
+
+type DefineFilterBodyPresence struct {
+	// The maximum number of events to return.
+	Limit *int `json:"limit,omitempty"`
+	// A list of sender IDs to exclude. If this list is absent then no senders are excluded. A matching sender will be excluded even if it is listed in the ``'senders'`` filter.
+	NotSenders []string `json:"not_senders,omitempty"`
+	// A list of event types to exclude. If this list is absent then no event types are excluded. A matching type will be excluded even if it is listed in the ``'types'`` filter. A '*' can be used as a wildcard to match any sequence of characters.
+	NotTypes []string `json:"not_types,omitempty"`
+	// A list of senders IDs to include. If this list is absent then all senders are included.
+	Senders []string `json:"senders,omitempty"`
+	// A list of event types to include. If this list is absent then all event types are included. A ``'*'`` can be used as a wildcard to match any sequence of characters.
+	Types []string `json:"types,omitempty"`
+}
+
+type DefineFilterBodyRoom struct {
+	// The per user account data to include for rooms.
+	AccountData *AccountData `json:"account_data,omitempty"`
+	// The events that aren't recorded in the room history, e.g. typing and receipts, to include for rooms.
+	Ephemeral *Ephemeral `json:"ephemeral,omitempty"`
+	// Include rooms that the user has left in the sync, default false
+	IncludeLeave *bool `json:"include_leave,omitempty"`
+	// A list of room IDs to exclude. If this list is absent then no rooms are excluded. A matching room will be excluded even if it is listed in the ``'rooms'`` filter. This filter is applied before the filters in ``ephemeral``, ``state``, ``timeline`` or ``account_data``
+	NotRooms []string `json:"not_rooms,omitempty"`
+	// A list of room IDs to include. If this list is absent then all rooms are included. This filter is applied before the filters in ``ephemeral``, ``state``, ``timeline`` or ``account_data``
+	Rooms []string `json:"rooms,omitempty"`
+	// The state events to include for rooms.
+	State *State `json:"state,omitempty"`
+	// The message and state update events to include for rooms.
+	Timeline *Timeline `json:"timeline,omitempty"`
+}
+
+type DefineFilterBody struct {
+	// The user account data that isn't associated with rooms to include.
+	AccountData *DefineFilterBodyAccountData `json:"account_data,omitempty"`
+	// List of event fields to include. If this list is absent then all fields are included. The entries may include '.' characters to indicate sub-fields. So ['content.body'] will include the 'body' field of the 'content' object. A literal '.' character in a field name may be escaped using a '\\'. A server may include more fields than were requested.
+	EventFields []string `json:"event_fields,omitempty"`
+	// The format to use for events. 'client' will return the events in a format suitable for clients. 'federation' will return the raw event as received over federation. The default is 'client'.
+	EventFormat *string `json:"event_format,omitempty"`
+	// The presence updates to include.
+	Presence *DefineFilterBodyPresence `json:"presence,omitempty"`
+	// Filters to be applied to room data.
+	Room *DefineFilterBodyRoom `json:"room,omitempty"`
+}
 
 type DefineFilterResponse struct {
 	// The ID of the filter that was created. Cannot start
@@ -202,7 +375,18 @@ func GetPresence(w http.ResponseWriter, r *http.Request) {
 	common.ResponseHandler(w, data, err)
 }
 
-type GetPushRulesResponseGlobal map[string]interface{}
+type GetPushRulesResponseGlobal struct {
+	//
+	Content []interface{} `json:"content,omitempty"`
+	//
+	Override []interface{} `json:"override,omitempty"`
+	//
+	Room []interface{} `json:"room,omitempty"`
+	//
+	Sender []interface{} `json:"sender,omitempty"`
+	//
+	Underride []interface{} `json:"underride,omitempty"`
+}
 
 type GetPushRulesResponse struct {
 	// The global ruleset.
@@ -315,11 +499,17 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	common.ResponseHandler(w, data, err)
 }
 
-type SyncResponseAccountData map[string]interface{}
+type SyncResponseAccountData struct {
+	// List of events.
+	Events []Events `json:"events,omitempty"`
+}
 
 type SyncResponseDeviceLists map[string]interface{}
 
-type SyncResponsePresence map[string]interface{}
+type SyncResponsePresence struct {
+	// List of events.
+	Events []Events `json:"events,omitempty"`
+}
 
 type SyncResponseRooms struct {
 	// The rooms that the user has been invited to, mapped as room ID to

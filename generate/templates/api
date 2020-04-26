@@ -24,6 +24,14 @@ func RegisterAPI(r chi.Router) {
 	})
 }
 
+// Common structs from specification's definitions.
+
+{{ range .CommonDefs }}
+{{ template "schema" . }}
+{{ end }}
+
+// Handlers types and definitions.
+
 {{ range .Handlers }}
 {{ template "handler" . }}
 {{ end }}

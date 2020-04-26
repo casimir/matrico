@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -162,10 +163,6 @@ func parseDefinitionFiles(root string) (map[string]*Schema, error) {
 		}
 		if !info.IsDir() {
 			log.Printf("@ %s", path)
-			if strings.HasSuffix(path, "event-schemas") {
-				log.Print("TODO handle later, link")
-				return nil
-			}
 			if strings.HasSuffix(path, "push_rule.yaml") {
 				log.Print("TODO handle later, multiple types")
 				return nil
@@ -184,8 +181,8 @@ func parseDefinitionFiles(root string) (map[string]*Schema, error) {
 		}
 		return nil
 	})
-	for _, schema := range defs {
-		schema.FollowRef(defs)
+	for _, it := range defs {
+		it.FollowRef(defs)
 	}
 	return defs, err
 }
@@ -229,6 +226,7 @@ type APISpec struct {
 	version  string
 	defs     map[string]*Schema
 	specs    []Spec
+	common   map[string]Schema
 	Handlers []APIHandler
 }
 
@@ -246,11 +244,38 @@ func ParseAPISpec(root, version, pkg string, skipOperationIDs []string) (*APISpe
 	for _, it := range skipOperationIDs {
 		skips[it] = true
 	}
+	common := make(map[string]Schema)
 	var handlers []APIHandler
 	for _, s := range specs {
-		handlers = append(handlers, s.extractHandlers(version, defs, skips)...)
+		hs := s.extractHandlers(version, defs, skips)
+		handlers = append(handlers, hs...)
+		for _, h := range hs {
+			if h.Body != nil {
+				for _, it := range h.Body.NestedDef {
+					common[it.Identifier] = it
+				}
+			}
+			for _, it := range h.Response.NestedDef {
+				common[it.Identifier] = it
+			}
+		}
 	}
-	return &APISpec{pkg, version, defs, specs, handlers}, nil
+	return &APISpec{pkg, version, defs, specs, common, handlers}, nil
+}
+
+type orderedSchemas []Schema
+
+func (os orderedSchemas) Len() int           { return len(os) }
+func (os orderedSchemas) Less(i, j int) bool { return os[i].Identifier < os[j].Identifier }
+func (os orderedSchemas) Swap(i, j int)      { os[i], os[j] = os[j], os[i] }
+
+func (s *APISpec) CommonDefs() []Schema {
+	ss := orderedSchemas(make([]Schema, 0, len(s.common)))
+	for _, v := range s.common {
+		ss = append(ss, v)
+	}
+	sort.Sort(ss)
+	return ss
 }
 
 var tmplAPI = template.Must(template.ParseGlob("generate/templates/*"))
