@@ -8,14 +8,17 @@ import (
 
 // common impl
 
+type SpecConfig struct {
+	Name      string
+	Version   string
+	Release   string
+	DefsExtra []string `toml:"definitions_extra"`
+	Blacklist []string
+	Overrides map[string]string
+}
+
 type Config struct {
-	Specs []struct {
-		Name      string
-		Version   string
-		Release   string
-		DefsExtra []string `toml:"definitions_extra"`
-		Blacklist []string
-	}
+	Specs []SpecConfig
 }
 
 func loadConfig() (*Config, error) {

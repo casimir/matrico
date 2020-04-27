@@ -57,7 +57,8 @@ func (n *Event) BuildPayload() map[string]interface{} {
 		}
 	}
 	return map[string]interface{}{
-		"type":   n.Properties["type"],
-		"sender": n.Properties["sender"],
+		"type":    n.Properties["type"],
+		"sender":  n.Properties["sender"],
+		"content": n.Properties["content"],
 	}
 }

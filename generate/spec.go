@@ -222,15 +222,16 @@ func parseSpecFiles(root string) ([]Spec, error) {
 }
 
 type APISpec struct {
-	Package  string
-	version  string
-	defs     map[string]*Schema
-	specs    []Spec
-	common   map[string]Schema
-	Handlers []APIHandler
+	Package   string
+	version   string
+	overrides map[string]string
+	defs      map[string]*Schema
+	specs     []Spec
+	common    map[string]Schema
+	Handlers  []APIHandler
 }
 
-func ParseAPISpec(root, version, pkg string, skipOperationIDs []string) (*APISpec, error) {
+func ParseAPISpec(root, version, pkg string, overrides map[string]string, skipOperationIDs []string) (*APISpec, error) {
 	defs, err := parseDefinitionFiles(path.Join(root, "definitions"))
 	if err != nil {
 		return nil, err
@@ -260,7 +261,7 @@ func ParseAPISpec(root, version, pkg string, skipOperationIDs []string) (*APISpe
 			}
 		}
 	}
-	return &APISpec{pkg, version, defs, specs, common, handlers}, nil
+	return &APISpec{pkg, version, overrides, defs, specs, common, handlers}, nil
 }
 
 type orderedSchemas []Schema
@@ -278,11 +279,16 @@ func (s *APISpec) CommonDefs() []Schema {
 	return ss
 }
 
-var tmplAPI = template.Must(template.ParseGlob("generate/templates/*"))
-
 func (s *APISpec) Source() []byte {
+	tmpl := template.Must(
+		template.New("api").
+			Funcs(template.FuncMap{
+				"getOverride": func(typ string) string { return s.overrides[typ] },
+			}).
+			ParseGlob("generate/templates/*"),
+	)
 	var content bytes.Buffer
-	if err := tmplAPI.Execute(&content, s); err != nil {
+	if err := tmpl.Execute(&content, s); err != nil {
 		panic(err)
 	}
 	return content.Bytes()

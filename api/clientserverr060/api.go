@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/casimir/matrico/api/common"
+	"github.com/casimir/matrico/data"
 	"github.com/go-chi/chi"
 )
 
@@ -69,12 +70,7 @@ type Ephemeral struct {
 	Rooms []string `json:"rooms,omitempty"`
 }
 
-type Events struct {
-	// The fields in this object will vary depending on the type of event. When interacting with the REST API, this is the HTTP body.
-	Content Content `json:"content"`
-	// The type of event. This SHOULD be namespaced similar to Java package naming conventions e.g. 'com.example.subdomain.event.type'
-	Type string `json:"type"`
-}
+type Events data.Event
 
 type Presence struct {
 	// The maximum number of events to return.

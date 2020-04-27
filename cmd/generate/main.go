@@ -91,21 +91,21 @@ func cacheArchive(archive, cacheDir, root string) error {
 	return nil
 }
 
-func runGenerate(name, version, release string, defsExtra, skipOperationIDs []string) error {
-	cacheDir := buildSpecCacheDir(name, version)
+func runGenerate(cfg SpecConfig) error {
+	cacheDir := buildSpecCacheDir(cfg.Name, cfg.Version)
 	info, _ := os.Stat(cacheDir)
 	var archive string
 	if info == nil || !info.IsDir() {
 		var err error
-		archive, err = downloadArchive(release)
+		archive, err = downloadArchive(cfg.Release)
 		if err != nil {
 			return err
 		}
 		log.Printf("filling cache: %s", cacheDir)
-		if err := cacheArchive(archive, cacheDir, name); err != nil {
+		if err := cacheArchive(archive, cacheDir, cfg.Name); err != nil {
 			return err
 		}
-		for _, it := range defsExtra {
+		for _, it := range cfg.DefsExtra {
 			dir := filepath.Join(cacheDir, "definitions", it)
 			if err := os.RemoveAll(dir); err != nil {
 				return err
@@ -118,11 +118,11 @@ func runGenerate(name, version, release string, defsExtra, skipOperationIDs []st
 		log.Printf("using cache: %s", cacheDir)
 	}
 
-	major := strings.SplitN(version, ".", 2)[0]
-	pkg := name + version
+	major := strings.SplitN(cfg.Version, ".", 2)[0]
+	pkg := cfg.Name + cfg.Version
 	pkg = strings.ReplaceAll(pkg, ".", "")
 	pkg = strings.ReplaceAll(pkg, "-", "")
-	api, err := generate.ParseAPISpec(cacheDir, major, pkg, skipOperationIDs)
+	api, err := generate.ParseAPISpec(cacheDir, major, pkg, cfg.Overrides, cfg.Blacklist)
 	if err != nil {
 		panic(err)
 	}
@@ -150,7 +150,7 @@ func main() {
 		log.Fatal(err)
 	}
 	for _, it := range config.Specs {
-		if err := runGenerate(it.Name, it.Version, it.Release, it.DefsExtra, it.Blacklist); err != nil {
+		if err := runGenerate(it); err != nil {
 			log.Fatal(err)
 		}
 	}

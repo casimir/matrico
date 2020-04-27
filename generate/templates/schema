@@ -2,7 +2,10 @@
 {{ template "schema" . }}
 
 {{ end -}}
-{{ if len .Attributes }}
+{{- $override := getOverride .Identifier -}}
+{{ if $override }}
+type {{ .Identifier }} {{ $override }}
+{{ else }} {{ if len .Attributes }}
 type {{ .Identifier }} struct {
 	{{ range .Attributes -}}
 	{{ .Doc }}
@@ -11,4 +14,4 @@ type {{ .Identifier }} struct {
 }
 {{ else }}
 type {{ .Identifier }} map[string]interface{}
-{{ end }}
+{{ end }}{{ end }}

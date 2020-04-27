@@ -114,6 +114,9 @@ blacklist = [
     "uploadKeys",
 ]
 
+[specs.overrides]
+Events = "data.Event"
+
 [[specs]]
 name = "server-server"
 version = "r0.1.3"
