@@ -100,7 +100,7 @@ func nodeSource(n Noder, name string, withProps bool) string {
 	props := []string{fmt.Sprintf("%s:%v", n.Key(), toString(n.KeyVal()))}
 	if withProps {
 		for k, v := range n.Props() {
-			props = append(props, fmt.Sprintf("%s:%v", k, rg.ToString(v)))
+			props = append(props, fmt.Sprintf("%s:%v", k, toString(v)))
 		}
 	}
 	return fmt.Sprintf("(%s:%s {%s})", name, n.Label(), strings.Join(props, ","))
