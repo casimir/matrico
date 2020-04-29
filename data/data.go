@@ -34,10 +34,12 @@ func (cr *ClosableResult) Close() error {
 	return cr.conn.Close()
 }
 
+type EventFilterFn func(*Event) bool
+
 type DataGraph struct {
 	graphName    string
 	pool         *redis.Pool
-	eventStreams map[EventStream]struct{}
+	eventStreams map[EventStream]EventFilterFn
 }
 
 func New(graph string) *DataGraph {
@@ -48,7 +50,7 @@ func New(graph string) *DataGraph {
 	return &DataGraph{
 		graphName:    graph,
 		pool:         &pool,
-		eventStreams: make(map[EventStream]struct{}),
+		eventStreams: make(map[EventStream]EventFilterFn),
 	}
 }
 
@@ -164,9 +166,9 @@ func (d *DataGraph) LinkNodes(src, dst Noder, label string) error {
 	return err
 }
 
-func (d *DataGraph) ListenNextEvent() EventStream {
+func (d *DataGraph) ListenNextEvent(f EventFilterFn) EventStream {
 	stream := make(EventStream, 1)
-	d.eventStreams[stream] = struct{}{}
+	d.eventStreams[stream] = f
 	return stream
 }
 
@@ -177,8 +179,10 @@ func (d *DataGraph) CancelEventListener(es EventStream) {
 }
 
 func (d *DataGraph) BroadcastEvent(event *Event) {
-	for stream := range d.eventStreams {
-		stream <- *event
-		delete(d.eventStreams, stream)
+	for stream, f := range d.eventStreams {
+		if f(event) {
+			stream <- *event
+			delete(d.eventStreams, stream)
+		}
 	}
 }

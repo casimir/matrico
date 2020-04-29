@@ -1,6 +1,7 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -49,16 +50,20 @@ func (n *Event) LinkTo(d *DataGraph, m Noder) error {
 	return d.LinkNodes(n, m, "SENT_BY")
 }
 
-func (n *Event) BuildPayload() map[string]interface{} {
+func (n *Event) Type() EventType {
+	return EventType(n.Properties["type"].(string))
+}
+
+func (n Event) MarshalJSON() ([]byte, error) {
+	data := make(map[string]interface{})
 	content := make(map[string]interface{})
 	for k, v := range n.Properties {
 		if strings.HasPrefix(k, "content_") {
 			content[k[8:]] = v
+		} else {
+			data[k] = v
 		}
 	}
-	return map[string]interface{}{
-		"type":    n.Properties["type"],
-		"sender":  n.Properties["sender"],
-		"content": n.Properties["content"],
-	}
+	data["content"] = content
+	return json.Marshal(data)
 }
